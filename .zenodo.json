@@ -1,0 +1,64 @@
+{
+  "title": "Provii: A Privacy-Preserving Age Verification Protocol",
+  "description": "Normative specification of the Provii zero knowledge age verification protocol. Defines cryptographic primitives, wire formats, and protocol flows for the issuance, proof, and verification roles. A wallet holding a date of birth credential proves it satisfies an age threshold to a verifier without revealing the date of birth, credential signature, or any other identifying information. Uses Groth16 over BLS12-381, Pedersen commitments on Jubjub, RedJubjub credential signatures, Ed25519 issuer attestations, Blake2s-256 hashing, and PKCE session binding.",
+  "version": "0.1.0",
+  "upload_type": "publication",
+  "publication_type": "technicalnote",
+  "language": "eng",
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "age verification",
+    "zero knowledge proof",
+    "privacy preserving",
+    "Groth16",
+    "BLS12-381",
+    "Jubjub",
+    "Pedersen commitment",
+    "RedJubjub",
+    "Ed25519",
+    "Blake2s",
+    "PKCE",
+    "cryptographic protocol",
+    "identity",
+    "specification"
+  ],
+  "creators": [
+    {
+      "name": "Maelstrom AI Pty Ltd",
+      "affiliation": "Maelstrom AI Pty Ltd ATF Maelstrom AI Holding Trust"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "O'Connor, Tim",
+      "type": "Editor",
+      "affiliation": "Maelstrom AI Pty Ltd"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://spec.provii.app/v0/protocol",
+      "relation": "isIdenticalTo",
+      "resource_type": "publication-technicalnote"
+    },
+    {
+      "identifier": "https://github.com/provii/provii-protocol-spec",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://github.com/provii/provii-crypto",
+      "relation": "isDocumentedBy",
+      "resource_type": "software"
+    }
+  ],
+  "references": [
+    "Groth, J. On the Size of Pairing-Based Non-interactive Arguments. EUROCRYPT 2016.",
+    "Hopwood, D. et al. Zcash Protocol Specification, Version 2024.5.4 [NU6].",
+    "Saarinen, M.-J., Aumasson, J.-P. The BLAKE2 Cryptographic Hash and Message Authentication Code. RFC 7693, November 2015.",
+    "Josefsson, S., Liusvaara, I. Edwards-Curve Digital Signature Algorithm (EdDSA). RFC 8032, January 2017.",
+    "Sakimura, N. et al. Proof Key for Code Exchange by OAuth Public Clients. RFC 7636, September 2015."
+  ],
+  "notes": "Australian Provisional Patent Application No. 2026901546, filed 26 February 2026 by Maelstrom AI Pty Ltd. Royalty-free licence granted to any person implementing this specification under the terms set out in the document's Copyright and Licence Notice, with defensive termination against litigants."
+}

@@ -1,0 +1,211 @@
+# DEPLOY — STATIC-ASSETS js-worker profile (provii-protocol-spec; docs/website reuse the model with
+# their own build command). Differs from the plain js-worker deploy: the `build` step runs the repo's
+# static site build (npm run build -> dist/, here pandoc via build.sh) and the SLSA/cosign subject is
+# the rendered-site tarball. wrangler deploy ships the worker + the dist/ ASSETS. Prod-only (no sandbox).
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_VERSION: '4.92.0'
+  NODE_VERSION: '22'
+
+jobs:
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm audit --omit=dev --audit-level=high
+
+  build:
+    name: Build (render static site)
+    needs: security-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: { contents: read }
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: Install static-render deps (pandoc + rsvg)
+        run: sudo apt-get update && sudo apt-get install -y pandoc librsvg2-bin
+      - name: Type check
+        run: npm run typecheck
+      - name: Render static site (build.sh -> dist/)
+        run: npm run build
+      - name: Package rendered site
+        run: tar -czf protocol-spec-site.tar.gz -C dist .
+      - name: Hash site for SLSA subject
+        id: hash
+        run: echo "hashes=$(sha256sum protocol-spec-site.tar.gz | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: { name: 'site-${{ github.sha }}', path: protocol-spec-site.tar.gz, if-no-files-found: error, retention-days: 30 }
+
+  # UPLIFT (backported from provii-crypto): GitHub-native artifact attestation, separate from SLSA.
+  # The rendered-site tarball gets a provenance attestation verifiable with `gh attestation verify`.
+  attestation:
+    name: Build Attestation
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with: { name: 'site-${{ github.sha }}', path: . }
+      - name: Generate build provenance attestation
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: 'protocol-spec-site.tar.gz'
+
+  deploy-production:
+    name: Deploy to Production
+    needs: [build]
+    if: always() && needs.build.result == 'success' && (github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    environment: { name: production, url: https://spec.provii.app }
+    permissions: { contents: read, deployments: write }
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: Install static-render deps (pandoc + rsvg)
+        run: sudo apt-get update && sudo apt-get install -y pandoc librsvg2-bin
+      - run: npm install -g wrangler@${{ env.WRANGLER_VERSION }} --ignore-scripts
+      - name: Render static site
+        run: npm run build
+      - name: Deploy worker + ASSETS
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -uo pipefail
+          if ! wrangler deploy; then echo "::error::wrangler deploy failed"; exit 1; fi
+          VERSION_ID=$(wrangler deployments list 2>/dev/null | grep -oiE '[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}' | head -1 || true)
+          printf '{"service":"provii-protocol-spec","version_id":"%s","git_sha":"%s","git_ref":"%s","run_id":"%s","worker_type":"js-static"}\n' \
+            "$VERSION_ID" "$GITHUB_SHA" "$GITHUB_REF" "$GITHUB_RUN_ID" > deployed-record.json
+      - name: Publish deployed record (WS-D -> provii-api-specs)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          B=provii-api-specs
+          wrangler r2 object put "$B/provii-protocol-spec/sha/${GITHUB_SHA}/deployed-record.json" --remote --file=deployed-record.json --content-type=application/json
+          wrangler r2 object put "$B/provii-protocol-spec/latest-deployed.json" --remote --file=deployed-record.json --content-type=application/json
+      - name: Post-deploy health (403-tolerant)
+        run: |
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://spec.provii.app/v0/protocol" || echo 000)
+          case "$code" in 2*|3*) echo "healthy ($code)";; 403) echo "::warning::403 = WAF challenge (expected for bots)";; *) echo "::error::unexpected $code"; exit 1;; esac
+
+  # === SBOM (tag-only; CI artifact via the shared JS generator) ===
+  sbom:
+    name: Generate SBOM
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: { contents: read }
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with: { format: spdx-json, output-file: sbom.spdx.json, upload-release-assets: false }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: { name: 'sbom-${{ github.sha }}', path: sbom.spdx.json, retention-days: 90 }
+
+  # === Release (tag-only): cosign keyless sign the rendered-site tarball + GH release ===
+  release:
+    name: Release
+    needs: [build, deploy-production]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with: { name: 'site-${{ github.sha }}', path: . }
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sign the rendered site (keyless)
+        run: |
+          set -euo pipefail
+          sha256sum protocol-spec-site.tar.gz > SHA256SUMS
+          cosign sign-blob --yes --bundle protocol-spec-site.tar.gz.cosign-bundle protocol-spec-site.tar.gz
+      - name: Verify signature
+        env:
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          cosign verify-blob --bundle protocol-spec-site.tar.gz.cosign-bundle \
+            --certificate-identity-regexp="https://github.com/${REPO_NAME}" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            protocol-spec-site.tar.gz
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        # Idempotent: re-tagging v0.1.0 must REFRESH the release, not fail on "already exists".
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" protocol-spec-site.tar.gz protocol-spec-site.tar.gz.cosign-bundle SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" protocol-spec-site.tar.gz protocol-spec-site.tar.gz.cosign-bundle SHA256SUMS --generate-notes --repo "$GITHUB_REPOSITORY"
+          fi
+
+  # === SLSA L3 provenance (tag-only) — subject is the rendered-site tarball ===
+  slsa:
+    name: SLSA Provenance
+    needs: [build, deploy-production, release]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+      private-repository: true
+      provenance-name: "provii-protocol-spec.intoto.jsonl"
