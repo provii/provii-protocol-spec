@@ -1,0 +1,151 @@
+/* Provii Protocol Specification, print.css
+ *
+ * Loaded with <link rel="stylesheet" media="print"> so a user who hits
+ * File > Print (or Save as PDF) in any modern browser gets a clean
+ * single-column render with hex strings and wide tables handled.
+ *
+ * The guardrail here: long hex strings in Appendix A
+ * and tables MUST NOT overflow the printed page. We wrap aggressively.
+ */
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 22mm 18mm;
+  @bottom-right {
+    content: counter(page);
+    font-size: 9pt;
+    color: #666;
+  }
+}
+
+/* Everything in one column, black on white, no backgrounds. */
+html, body {
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-size: 10.5pt;
+  line-height: 1.45;
+}
+
+.skip-link,
+.site-header,
+.sidebar,
+nav#TOC {
+  display: none !important;
+}
+
+.layout {
+  display: block !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.content {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Start each major section on its own page. */
+h2 {
+  break-before: page;
+  page-break-before: always; /* legacy spelling for older engines */
+  border-bottom: 1px solid #888;
+  padding-bottom: 0.15rem;
+}
+/* Don't force a page break for the very first h2 (keeps the title page
+ * immediately followed by the first section without a blank leaf). */
+.doc-header + h2,
+.doc-header + section > h2:first-child,
+main > section:first-of-type > h2:first-child {
+  break-before: auto;
+  page-break-before: auto;
+}
+
+h1, h2, h3, h4 {
+  break-after: avoid;
+  page-break-after: avoid;
+  color: #000000 !important;
+}
+h1 { font-size: 20pt; }
+h2 { font-size: 15pt; }
+h3 { font-size: 12pt; }
+h4 { font-size: 11pt; }
+
+p, li, blockquote {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Hide permalink markers in print; they're noise on paper. */
+a.anchor { display: none !important; }
+
+/* Inline links keep their text; don't auto-append URLs (too noisy for
+ * a spec with hundreds of references). Anyone reading the PDF has the
+ * rendered HTML available online for navigation. */
+a, a:visited {
+  color: #000000 !important;
+  text-decoration: underline;
+}
+
+/* CRITICAL: long hex strings in Appendix A and
+ * tables must not overflow the page width. */
+pre {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  font-size: 8pt !important;
+  line-height: 1.35 !important;
+  background: transparent !important;
+  border: 1px solid #cccccc !important;
+  padding: 0.4rem 0.5rem !important;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: 9pt !important;
+  word-break: break-all;
+}
+
+table {
+  font-size: 9pt !important;
+  page-break-inside: auto;
+  break-inside: auto;
+  /* revert the on-screen scroll container */
+  display: table !important;
+  overflow: visible !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+thead { display: table-header-group; } /* repeat thead on each page */
+tr { page-break-inside: avoid; break-inside: avoid; }
+th, td {
+  border: 1px solid #888 !important;
+  padding: 0.25rem 0.4rem !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  background: transparent !important;
+  color: #000000 !important;
+}
+tbody tr:nth-child(even) { background: transparent !important; }
+
+blockquote {
+  border-left: 2px solid #888 !important;
+  background: transparent !important;
+  color: #000000 !important;
+  padding-left: 0.8rem !important;
+}
+
+/* Images and figures */
+img { max-width: 100% !important; height: auto !important; }
+figure { page-break-inside: avoid; break-inside: avoid; }
+
+/* Kill any dark-mode colouring that might leak in from a user stylesheet. */
+* {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}

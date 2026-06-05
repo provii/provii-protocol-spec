@@ -1,0 +1,116 @@
+<!-- SEO + Social + Structured Data for /v0/protocol -->
+<meta name="description" content="Normative specification of the Provii zero knowledge age verification protocol. Groth16, BLS12-381, Jubjub, Pedersen, Ed25519. v0.1, May 2026." />
+<meta name="author" content="Maelstrom AI Pty Ltd" />
+<meta name="keywords" content="age verification, zero knowledge proof, Groth16, BLS12-381, Jubjub, Pedersen commitment, RedJubjub, Ed25519, Blake2s, PKCE, privacy preserving, cryptographic protocol, Provii" />
+<meta name="theme-color" content="#0091C7" />
+<link rel="canonical" href="https://spec.provii.app/v0/protocol" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Provii Protocol Specifications" />
+<meta property="og:title" content="Provii Protocol Specification v0.1 | spec.provii.app" />
+<meta property="og:description" content="Normative specification of the Provii zero knowledge age verification protocol. Groth16, BLS12-381, Jubjub, Pedersen, Ed25519. v0.1, May 2026." />
+<meta property="og:url" content="https://spec.provii.app/v0/protocol" />
+<meta property="og:image" content="https://spec.provii.app/assets/og-spec-v0.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Provii Protocol Specification v0.1 (May 2026)" />
+<meta property="og:locale" content="en_AU" />
+<meta property="article:published_time" content="2026-04-01T00:00:00Z" />
+<meta property="article:modified_time" content="{{GIT_COMMIT_DATE}}" />
+<meta property="article:author" content="Maelstrom AI Pty Ltd" />
+<meta property="article:section" content="Cryptography" />
+<meta property="article:tag" content="zero knowledge proof" />
+<meta property="article:tag" content="age verification" />
+<meta property="article:tag" content="cryptographic protocol" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Provii Protocol Specification v0.1" />
+<meta name="twitter:description" content="Normative specification of the Provii zero knowledge age verification protocol. Groth16, BLS12-381, Jubjub, Pedersen, Ed25519. v0.1, May 2026." />
+<meta name="twitter:image" content="https://spec.provii.app/assets/og-spec-v0.png" />
+<meta name="twitter:image:alt" content="Provii Protocol Specification v0.1 (May 2026)" />
+
+<!-- Favicons -->
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+<!-- TechArticle structured data (Google Rich Results compatible) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://spec.provii.app/v0/protocol"
+  },
+  "headline": "Provii: A Privacy-Preserving Age Verification Protocol",
+  "name": "Provii Protocol Specification v0.1",
+  "description": "Normative specification of the Provii zero knowledge age verification protocol. Defines cryptographic primitives, wire formats, and protocol flows for the issuance, proof, and verification roles.",
+  "identifier": "provii-crypto-protocol-0.1",
+  "version": "0.1.0",
+  "inLanguage": "en-AU",
+  "url": "https://spec.provii.app/v0/protocol",
+  "image": {
+    "@type": "ImageObject",
+    "url": "https://spec.provii.app/assets/og-spec-v0.png",
+    "width": 1200,
+    "height": 630
+  },
+  "datePublished": "2026-04-01",
+  "dateModified": "{{GIT_COMMIT_DATE}}",
+  "author": {
+    "@type": "Organization",
+    "name": "Maelstrom AI Pty Ltd",
+    "url": "https://provii.app",
+    "email": "spec@provii.app",
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "AU",
+      "addressLocality": "St Arnaud",
+      "addressRegion": "VIC",
+      "postalCode": "3478",
+      "postOfficeBoxNumber": "169"
+    }
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Maelstrom AI Pty Ltd",
+    "url": "https://provii.app",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://spec.provii.app/assets/favicon.svg",
+      "width": 400,
+      "height": 400
+    }
+  },
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "copyrightYear": 2026,
+  "copyrightHolder": {
+    "@type": "Organization",
+    "name": "Maelstrom AI Pty Ltd ATF Maelstrom AI Holding Trust"
+  },
+  "keywords": "age verification, zero knowledge proof, Groth16, BLS12-381, Jubjub, Pedersen commitment, RedJubjub, Ed25519, Blake2s, PKCE, privacy preserving, cryptographic protocol",
+  "about": [
+    {
+      "@type": "Thing",
+      "name": "Zero knowledge proofs",
+      "sameAs": "https://en.wikipedia.org/wiki/Zero-knowledge_proof"
+    },
+    {
+      "@type": "Thing",
+      "name": "Age verification",
+      "sameAs": "https://en.wikipedia.org/wiki/Age_verification_system"
+    }
+  ],
+  "audience": {
+    "@type": "Audience",
+    "audienceType": "cryptographic engineers, wallet implementers, verifier operators, identity issuers, security auditors"
+  },
+  "isAccessibleForFree": true,
+  "proficiencyLevel": "Expert",
+  "dependencies": "Groth16, BLS12-381, Jubjub, RedJubjub, Ed25519, Blake2s-256, SHA-256, PKCE (RFC 7636)",
+  "citation": "Maelstrom AI Pty Ltd, \"Provii: A Privacy-Preserving Age Verification Protocol\", provii-crypto-protocol-0.1, version 0.1.0, May 2026."
+}
+</script>

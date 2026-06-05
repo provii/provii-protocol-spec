@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provii Protocol Specifications | spec.provii.app</title>
+  <meta name="description" content="Normative specifications for the Provii zero knowledge age verification protocol. Current version: v0.1, May 2026. Published under CC BY 4.0." />
+  <meta name="author" content="Maelstrom AI Pty Ltd" />
+  <meta name="keywords" content="Provii, protocol specification, age verification, zero knowledge proof, cryptographic protocol" />
+  <meta name="theme-color" content="#0091C7" />
+  <link rel="canonical" href="https://spec.provii.app/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Provii Protocol Specifications" />
+  <meta property="og:title" content="Provii Protocol Specifications" />
+  <meta property="og:description" content="Normative specifications for the Provii zero knowledge age verification protocol. Current version: v0.1 (May 2026)." />
+  <meta property="og:url" content="https://spec.provii.app/" />
+  <meta property="og:image" content="https://spec.provii.app/assets/og-spec-v0.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Provii Protocol Specification v0.1 (May 2026)" />
+  <meta property="og:locale" content="en_AU" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Provii Protocol Specifications" />
+  <meta name="twitter:description" content="Normative specifications for the Provii zero knowledge age verification protocol. Current version: v0.1 (May 2026)." />
+  <meta name="twitter:image" content="https://spec.provii.app/assets/og-spec-v0.svg" />
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+
+  <!-- Sarah's spec CSS (shared tokens) -->
+  <link rel="stylesheet" href="/styles/main.css" />
+
+  <!-- CreativeWorkSeries structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CreativeWorkSeries",
+    "name": "Provii Protocol Specifications",
+    "alternateName": "Provii Spec",
+    "url": "https://spec.provii.app/",
+    "description": "Normative specifications for the Provii zero knowledge age verification protocol.",
+    "inLanguage": "en-AU",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Maelstrom AI Pty Ltd",
+      "url": "https://provii.app",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://spec.provii.app/assets/favicon.svg"
+      }
+    },
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "hasPart": [
+      {
+        "@type": "TechArticle",
+        "@id": "https://spec.provii.app/v0/protocol",
+        "headline": "Provii: A Privacy-Preserving Age Verification Protocol",
+        "name": "Provii Protocol Specification v0.1",
+        "url": "https://spec.provii.app/v0/protocol",
+        "version": "0.1.0",
+        "identifier": "provii-crypto-protocol-0.1",
+        "datePublished": "2026-05-30",
+        "inLanguage": "en-AU"
+      }
+    ]
+  }
+  </script>
+
+  <!-- Landing-only styles. Kept minimal; spec pages inherit from Sarah's main.css. -->
+  <style>
+    :root {
+      color-scheme: light dark;
+      --spec-primary: #00749f;           /* primary-600, AA 5.01:1 on white */
+      --spec-primary-brand: #0091C7;     /* non-text brand accents only */
+      --spec-fg: #0b1220;
+      --spec-fg-muted: #5a6473;
+      --spec-bg: #ffffff;
+      --spec-card-bg: rgba(0,145,199,0.04);
+      --spec-border: rgba(11,18,32,0.12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --spec-fg: #e6edf3;
+        --spec-fg-muted: #98a4b3;
+        --spec-bg: #0b1220;
+        --spec-card-bg: rgba(0,145,199,0.08);
+        --spec-border: rgba(230,237,243,0.14);
+      }
+    }
+
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--spec-bg);
+      color: var(--spec-fg);
+      line-height: 1.55;
+      font-size: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .landing {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 3rem;
+      flex: 1;
+    }
+    .landing-header {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 2.5rem;
+    }
+    .landing-header img { width: 40px; height: 40px; }
+    .landing-header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .lead {
+      font-size: 1.15rem;
+      color: var(--spec-fg-muted);
+      margin: 0 0 3rem 0;
+      max-width: 36rem;
+    }
+    section.card {
+      background: var(--spec-card-bg);
+      border: 1px solid var(--spec-border);
+      border-radius: 10px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.25rem;
+    }
+    section.card h2 {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--spec-fg-muted);
+      margin: 0 0 0.9rem 0;
+    }
+    .version-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .version-number {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--spec-fg);
+    }
+    .version-date {
+      color: var(--spec-fg-muted);
+      font-size: 0.95rem;
+    }
+    .action-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+    .btn {
+      display: inline-block;
+      padding: 0.55rem 1.1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background-color 120ms ease, border-color 120ms ease;
+    }
+    .btn-primary {
+      background: var(--spec-primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover, .btn-primary:focus-visible {
+      background: #007ba8;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--spec-fg);
+      border-color: var(--spec-border);
+    }
+    .btn-secondary:hover, .btn-secondary:focus-visible {
+      border-color: var(--spec-primary);
+      color: var(--spec-primary);
+    }
+    dl.meta {
+      display: grid;
+      grid-template-columns: 8rem 1fr;
+      gap: 0.6rem 1rem;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    dl.meta dt { color: var(--spec-fg-muted); font-weight: 500; }
+    dl.meta dd { margin: 0; color: var(--spec-fg); word-break: break-word; }
+    dl.meta a { color: var(--spec-primary); text-decoration: none; }
+    dl.meta a:hover, dl.meta a:focus-visible { text-decoration: underline; }
+    footer.site-footer {
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--spec-fg-muted);
+      border-top: 1px solid var(--spec-border);
+    }
+    @media (max-width: 540px) {
+      dl.meta { grid-template-columns: 1fr; gap: 0.15rem 0; }
+      dl.meta dd { margin-bottom: 0.6rem; }
+      .landing { padding: 2.5rem 1.25rem 2rem; }
+      .landing-header h1 { font-size: 1.55rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="landing" id="content">
+    <div class="landing-header">
+      <img src="/assets/favicon.svg" alt="" aria-hidden="true" />
+      <h1>Provii Protocol Specifications</h1>
+    </div>
+
+    <p class="lead">Normative specifications for the Provii zero knowledge age verification protocol.</p>
+
+    <section class="card" aria-labelledby="current-version-heading">
+      <h2 id="current-version-heading">Current version</h2>
+      <div class="version-row">
+        <span class="version-number">v0.1</span>
+        <span class="version-date">May 2026 &#183; Stable</span>
+      </div>
+      <div class="action-row">
+        <a class="btn btn-primary" href="/v0/protocol">Read the specification</a>
+        <a class="btn btn-secondary" href="https://github.com/provii/provii-protocol-spec/tree/v0.1.0" rel="noopener">View on GitHub</a>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="resources-heading">
+      <h2 id="resources-heading">Resources</h2>
+      <dl class="meta">
+        <dt>Source</dt>
+        <dd><a href="https://github.com/provii/provii-protocol-spec" rel="noopener">github.com/provii/provii-protocol-spec</a></dd>
+
+        <dt>Errata</dt>
+        <dd><a href="https://github.com/provii/provii-protocol-spec/issues" rel="noopener">GitHub issues</a></dd>
+
+        <dt>Reference</dt>
+        <dd><a href="https://github.com/provii/provii-crypto" rel="noopener">provii/provii-crypto</a></dd>
+
+        <dt>Licence</dt>
+        <dd><a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a></dd>
+
+        <dt>Contact</dt>
+        <dd><a href="mailto:spec@provii.app">spec@provii.app</a></dd>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    Published by Maelstrom AI Pty Ltd &#183; spec.provii.app
+  </footer>
+</body>
+</html>

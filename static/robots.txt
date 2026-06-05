@@ -1,0 +1,26 @@
+# Provii Protocol Specification, spec.provii.app
+# Indexing is encouraged. This is a public normative specification.
+
+User-agent: *
+Allow: /
+
+# AI crawlers: explicitly allowed for this public specification.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://spec.provii.app/sitemap.xml

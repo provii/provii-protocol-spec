@@ -1,0 +1,18 @@
+# provii-protocol-spec — production (top-level). Prod-only static-assets worker: build.sh renders
+# the spec to dist/ (pandoc), served via the ASSETS binding; the worker adds security headers and a
+# legacy redirect. No [env.sandbox] per "sandbox where it's used".
+name = "production-protocol-spec"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "spec.provii.app", custom_domain = true }]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "404-page"
+run_worker_first = true   # worker runs before asset handler so security headers + redirects apply to every response
+
+[observability]
+enabled = true

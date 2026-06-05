@@ -1,0 +1,623 @@
+/* Provii Protocol Specification, main.css
+ *
+ * Constraints this stylesheet lives within:
+ *   - CSP: default-src 'none'; style-src 'unsafe-inline' 'self'; img-src 'self' data:
+ *     (no font-src, no script-src). Fonts must be local or system stack.
+ *   - Zero JavaScript on the spec page.
+ *   - WCAG 2.2 AA contrast on every token pair, light and dark.
+ *   - Reading measure capped at ~68ch on the main column.
+ *
+ * Brand tokens mirror provii-website/src/styles/global.css where sensible.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Brand tokens, light mode defaults
+ * ------------------------------------------------------------------ */
+:root {
+  color-scheme: light dark;
+
+  /* Primary palette, mirrored from provii-website. */
+  --color-primary-50:  #e6f6fb;
+  --color-primary-100: #b3e3f3;
+  --color-primary-200: #80d0eb;
+  --color-primary-300: #4dbde3;
+  --color-primary-400: #1aabdb;
+  --color-primary-500: #0091c7;
+  --color-primary-600: #00749f;
+  --color-primary-700: #005777;
+  --color-primary-800: #003a4f;
+  --color-primary-900: #001d28;
+
+  --color-secondary-500: #b664f8;
+  --color-secondary-700: #6d3c95;
+
+  /* Neutral ramp, tuned for AA against both white and near-black. */
+  --color-ink:       #1a1d21; /* body text */
+  --color-ink-soft:  #4a5058; /* muted text, captions */
+  --color-ink-mute:  #6b7280; /* dates, page-footer meta */
+  --color-line:      #e4e7eb; /* hairlines, table borders */
+  --color-line-soft: #eef0f3;
+  --color-surface:       #ffffff;
+  --color-surface-sunken: #f7f8fa;
+  --color-surface-raised: #ffffff;
+  --color-code-bg:   #f3f4f6;
+  --color-code-ink:  #1a1d21;
+
+  /* Semantic */
+  --color-link:         var(--color-primary-600);
+  --color-link-visited: var(--color-secondary-700);
+  --color-accent:       var(--color-primary-500);
+  --color-accent-soft:  var(--color-primary-50);
+
+  /* Typography scale, 1.25 ratio from 1rem base */
+  --font-size-body: 1rem;
+  --font-size-h1:   2.25rem;
+  --font-size-h2:   1.75rem;
+  --font-size-h3:   1.375rem;
+  --font-size-h4:   1.125rem;
+  --font-size-small: 0.875rem;
+
+  /* Font stack, system only. CSP currently forbids font-src entirely so
+   * loading Inter from a CDN is off the table without relaxing the policy. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+               Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+               "Liberation Mono", monospace;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --measure:       68ch;
+  --content-max:   48rem;
+  --layout-gap:    2.5rem;
+  --content-padding-x: 1.5rem;
+
+  /* Radius, shadow */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Focus ring, thick, high contrast, visible in both themes */
+  --focus-ring: 0 0 0 3px rgba(0, 145, 199, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink:       #e6e8eb;
+    --color-ink-soft:  #b1b7bf;
+    --color-ink-mute:  #8a929c;
+    --color-line:      #2a3038;
+    --color-line-soft: #1d2229;
+    --color-surface:       #0d1117;
+    --color-surface-sunken: #11161d;
+    --color-surface-raised: #161c24;
+    --color-code-bg:   #1a2029;
+    --color-code-ink:  #e6e8eb;
+
+    --color-link:         var(--color-primary-300);
+    --color-link-visited: #d09cf8; /* secondary-300 */
+    --color-accent:       var(--color-primary-400);
+    --color-accent-soft:  rgba(0, 145, 199, 0.14);
+
+    --focus-ring: 0 0 0 3px rgba(77, 189, 227, 0.55);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reset + base
+ * ------------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  line-height: 1.65;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Selection colour, brand primary, tuned for AA on both themes. */
+::selection {
+  background: rgba(0, 145, 199, 0.30);
+  color: inherit;
+}
+
+/* Focus ring, applies only when keyboard-focused. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Skip link (keyboard accessibility)
+ * ------------------------------------------------------------------ */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary-600);
+  color: #ffffff;
+  z-index: 100;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-md) 0;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Site header strip
+ * ------------------------------------------------------------------ */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+}
+.site-header-inner {
+  max-width: calc(var(--sidebar-width) + var(--content-max) + var(--layout-gap) + (var(--content-padding-x) * 2));
+  margin: 0 auto;
+  padding: 0.75rem var(--content-padding-x);
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+.site-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.site-title:hover { color: var(--color-link); }
+.site-version {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  padding: 0.1rem 0.5rem;
+  background: var(--color-accent-soft);
+  color: var(--color-link);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line);
+}
+
+/* ------------------------------------------------------------------ *
+ * Two-column layout: sticky sidebar + main content
+ * ------------------------------------------------------------------ */
+.layout {
+  max-width: calc(var(--sidebar-width) + var(--content-max) + var(--layout-gap) + (var(--content-padding-x) * 2));
+  margin: 0 auto;
+  padding: 0 var(--content-padding-x);
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  gap: var(--layout-gap);
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  /* site-header is ~52px tall; small buffer keeps the ToC from touching it */
+  top: 3.5rem;
+  max-height: calc(100vh - 3.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 0.5rem 1.5rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  /* thin scrollbar in browsers that honour it */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 4px;
+}
+
+.sidebar-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-mute);
+  margin: 0 0 0.75rem 0;
+  padding: 0 0.5rem;
+  border-bottom: none;         /* override generic h2 */
+  padding-bottom: 0;
+  scroll-margin-top: 0;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  padding-left: 0.75rem;
+  margin: 0;
+  border-left: 1px solid var(--color-line);
+}
+.sidebar nav > ul {
+  border-left: none;
+  padding-left: 0;
+}
+.sidebar nav ul ul {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+  font-size: 0.95em;
+}
+.sidebar nav li {
+  margin: 0.15rem 0;
+}
+.sidebar nav a {
+  display: block;
+  padding: 0.2rem 0.5rem;
+  color: var(--color-ink-soft);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  margin-left: -0.5rem;
+  padding-left: 0.5rem;
+}
+.sidebar nav a:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
+}
+.sidebar nav a:focus-visible {
+  color: var(--color-link);
+}
+/* :target gives a cheap "current" indicator when the user clicks a ToC link */
+.sidebar nav a[href^="#"]:active {
+  color: var(--color-link);
+  border-left-color: var(--color-accent);
+}
+
+.content {
+  min-width: 0; /* allow children with overflow to actually overflow */
+  padding: 1.5rem 0 4rem 0;
+  max-width: var(--measure);
+}
+
+/* ------------------------------------------------------------------ *
+ * Document header (title, metadata block)
+ * ------------------------------------------------------------------ */
+.doc-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.doc-header .title {
+  font-size: var(--font-size-h1);
+  line-height: 1.2;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+.doc-header .subtitle {
+  font-size: 1.125rem;
+  color: var(--color-ink-soft);
+  margin: 0.25rem 0;
+}
+.doc-header .author,
+.doc-header .date {
+  color: var(--color-ink-mute);
+  font-size: var(--font-size-small);
+  margin: 0.1rem 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Prose
+ * ------------------------------------------------------------------ */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.25;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+  scroll-margin-top: 4rem; /* offset for sticky site header */
+}
+/* Section divs from --section-divs are the actual targets of ToC links
+ * (pandoc puts the id on the section, not the heading), so they need the
+ * same scroll offset. */
+.content section[id] { scroll-margin-top: 4rem; }
+h1 { font-size: var(--font-size-h1); }
+h2 {
+  font-size: var(--font-size-h2);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--color-line);
+  margin-top: 2.75rem;
+}
+h3 { font-size: var(--font-size-h3); margin-top: 2rem; }
+h4 { font-size: var(--font-size-h4); }
+
+/* Permalink anchor on headings.
+ * The Lua filter emits the anchor as a SIBLING of the heading, not a child,
+ * so that pandoc's ToC writer (which copies heading inline content verbatim)
+ * doesn't pick up the "#" character. We position the anchor absolutely
+ * against its containing section/div; each section block already has a
+ * positioning context via the rules below. */
+section, div.doc-section {
+  position: relative;
+}
+a.anchor {
+  /* Use adjacent-sibling positioning: the anchor always follows its heading
+   * immediately. We pull it up to sit next to the heading text with a
+   * negative margin so it overlays the heading's left gutter. */
+  display: block;
+  position: absolute;
+  margin-top: -2.1rem;        /* lift to heading row (h2 line-height) */
+  margin-left: -1.3rem;       /* sit in the left gutter */
+  font-weight: 400;
+  font-size: 1rem;
+  color: var(--color-ink-mute);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.12s ease-in;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+/* Reveal on section hover or when the anchor gets keyboard focus. */
+h1:hover + a.anchor,
+h2:hover + a.anchor,
+h3:hover + a.anchor,
+h4:hover + a.anchor,
+h5:hover + a.anchor,
+h6:hover + a.anchor,
+a.anchor:hover,
+a.anchor:focus-visible {
+  opacity: 1;
+}
+a.anchor:hover { color: var(--color-link); text-decoration: none; }
+
+p {
+  margin: 0 0 1rem 0;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+a:hover {
+  color: var(--color-primary-700);
+  text-decoration-thickness: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  a:hover { color: var(--color-primary-200); }
+}
+a:visited {
+  color: var(--color-link-visited);
+}
+
+strong { font-weight: 600; }
+
+ul, ol {
+  margin: 0 0 1rem 0;
+  padding-left: 1.5rem;
+}
+li { margin: 0.25rem 0; }
+li > ul, li > ol { margin: 0.25rem 0; }
+
+blockquote {
+  margin: 1.25rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-ink-soft);
+  background: var(--color-surface-sunken);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+blockquote p:last-child { margin-bottom: 0; }
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-line);
+  margin: 2.5rem 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Tables
+ * ------------------------------------------------------------------ */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.25rem 0;
+  font-size: 0.95rem;
+  /* let wide tables scroll rather than break the layout */
+  display: block;
+  overflow-x: auto;
+}
+thead {
+  background: var(--color-surface-sunken);
+}
+th, td {
+  border: 1px solid var(--color-line);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  font-weight: 600;
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
+}
+tbody tr:nth-child(even) {
+  background: var(--color-line-soft);
+}
+
+/* ------------------------------------------------------------------ *
+ * Code
+ * ------------------------------------------------------------------ */
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+code {
+  background: var(--color-code-bg);
+  color: var(--color-code-ink);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line);
+}
+pre {
+  background: var(--color-code-bg);
+  color: var(--color-code-ink);
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  overflow-x: auto;
+  line-height: 1.5;
+  margin: 1.25rem 0;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-line);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * Skylighting (pandoc --highlight-style=tango) token classes
+ * We restyle tango's colours so they fit the brand and pass AA on both
+ * themes. Pandoc emits classes like .kw .dt .st .co etc. inside
+ * <pre class="sourceCode"><code class="sourceCode language-xxx">.
+ * ------------------------------------------------------------------ */
+pre.sourceCode { padding: 0.9rem 1rem; }
+code.sourceCode { display: block; }
+/* Pandoc inserts invisible line-anchor links inside each code line for line
+ * numbering. Strip all decoration so they don't flash into existence. */
+pre.sourceCode a[aria-hidden="true"] {
+  color: inherit;
+  text-decoration: none;
+  border: none;
+}
+.sourceCode span.al { color: #c0392b; font-weight: 600; }   /* alert */
+.sourceCode span.an { color: #5a6270; font-style: italic; } /* annotation */
+.sourceCode span.at { color: var(--color-primary-700); }    /* attribute */
+.sourceCode span.bn { color: var(--color-secondary-700); }  /* base number */
+.sourceCode span.cf { color: var(--color-primary-700); font-weight: 600; } /* control flow */
+.sourceCode span.ch { color: #2e8555; }                     /* char */
+.sourceCode span.cn { color: var(--color-secondary-700); }  /* constant */
+.sourceCode span.co { color: #5a6270; font-style: italic; }  /* comment, AA on code-bg */
+.sourceCode span.do { color: #5a6270; font-style: italic; }  /* doc comment */
+.sourceCode span.dt { color: var(--color-primary-700); }    /* data type */
+.sourceCode span.dv { color: var(--color-secondary-700); }  /* decimal value */
+.sourceCode span.er { color: #c0392b; font-weight: 600; }   /* error */
+.sourceCode span.fl { color: var(--color-secondary-700); }  /* float */
+.sourceCode span.fu { color: var(--color-primary-700); }    /* function */
+.sourceCode span.im { color: var(--color-primary-700); font-weight: 600; } /* import */
+.sourceCode span.kw { color: var(--color-primary-700); font-weight: 600; } /* keyword */
+.sourceCode span.op { color: var(--color-ink); }            /* operator */
+.sourceCode span.ot { color: var(--color-primary-700); }    /* other */
+.sourceCode span.pp { color: var(--color-secondary-700); }  /* preprocessor */
+.sourceCode span.sc { color: #2e8555; }                     /* special char */
+.sourceCode span.ss { color: #2e8555; }                     /* special string */
+.sourceCode span.st { color: #2e8555; }                     /* string */
+.sourceCode span.va { color: var(--color-ink); }            /* variable */
+.sourceCode span.vs { color: #2e8555; }                     /* verbatim string */
+.sourceCode span.wa { color: #b35900; font-style: italic; } /* warning */
+
+@media (prefers-color-scheme: dark) {
+  .sourceCode span.at,
+  .sourceCode span.cf,
+  .sourceCode span.dt,
+  .sourceCode span.fu,
+  .sourceCode span.im,
+  .sourceCode span.kw,
+  .sourceCode span.ot { color: #4dbde3; }
+  .sourceCode span.bn,
+  .sourceCode span.cn,
+  .sourceCode span.dv,
+  .sourceCode span.fl,
+  .sourceCode span.pp { color: #c39bff; }
+  .sourceCode span.ch,
+  .sourceCode span.sc,
+  .sourceCode span.ss,
+  .sourceCode span.st,
+  .sourceCode span.vs { color: #7ee2a8; }
+  .sourceCode span.co,
+  .sourceCode span.do,
+  .sourceCode span.an { color: #8a929c; }
+  .sourceCode span.wa { color: #f0b060; }
+}
+
+/* Figures */
+figure { margin: 1.5rem 0; text-align: center; }
+figcaption {
+  font-size: var(--font-size-small);
+  color: var(--color-ink-soft);
+  margin-top: 0.5rem;
+}
+
+/* Inline section-number badge, when the Lua filter has set data-section. */
+h2[data-section]::before,
+h3[data-section]::before,
+h4[data-section]::before {
+  /* The heading text already starts with the number; we don't want to
+   * double-print it. Keep the attribute available for citation tools but
+   * render nothing here. Exposed via [data-section] attribute selector so
+   * future tooling or print CSS can style it. */
+  content: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Responsive: collapse sidebar below 820px
+ * ------------------------------------------------------------------ */
+@media (max-width: 820px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-line);
+    margin-bottom: 1rem;
+  }
+  .site-header { position: static; }
+  .content { padding-top: 0.5rem; }
+  .content { max-width: 100%; }
+  h2 { margin-top: 2rem; }
+  h1 > a.anchor,
+  h2 > a.anchor,
+  h3 > a.anchor,
+  h4 > a.anchor {
+    /* on narrow screens an off-canvas anchor would clip; inline it */
+    position: static;
+    opacity: 1;
+    margin-right: 0.25rem;
+    color: var(--color-ink-mute);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Print styles moved to print.css (loaded with media="print").
+ * ------------------------------------------------------------------ */
