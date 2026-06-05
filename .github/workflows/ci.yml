@@ -1,0 +1,144 @@
+# CANONICAL JS/TS WORKER ci.yml  (provii-provenance, provii-protocol-spec, provii-website, provii-docs,
+# and the other TypeScript workers). Small, independently-failing jobs. Deploys live in deploy.yml;
+# this file deploys ONLY to sandbox on push to develop (the rolling staging env). NO tag handling
+# here (tag v*.*.* -> deploy.yml: security-gate -> build -> deploy-staging -> deploy-production ->
+# sbom -> release -> SLSA).
+#
+# This is the js/ts sibling of profiles/worker/ci.yml. SAME shape (harden-runner first, SHA-pinned
+# actions, ci-success sentinel) but a Node/TS toolchain instead of Rust, and NO reproducible-wasm /
+# build-wasm / Miri jobs — these are infrastructure workers, not the privacy-critical wasm. wrangler
+# bundles the TS on deploy, so the "build" check is a `wrangler deploy --dry-run` (esbuild bundle),
+# not a pinned reproducible build.
+#
+# Placeholders to fill per repo:
+#   provii-protocol-spec         repo / wrangler service name (provii-protocol-spec)
+#   sandbox  wrangler --env name for sandbox (matches [env.sandbox] in wrangler.toml)
+#   sandbox-spec.provii.app    sandbox-<svc>.provii.app
+#   /health     /health (the WAF SKIP rule exempts /health on the worker hosts), or '' to skip
+#   <COVERAGE_THRESHOLDS>  the org gate, enforced in vitest.config.ts (lines/functions/statements
+#                          80, branches 75 today); `npm run test:coverage` exits non-zero if unmet.
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore: ['**.md', 'docs/**', 'LICENSE*', '.gitignore', 'CHANGELOG*']
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'LICENSE*', '.gitignore', 'CHANGELOG*']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_VERSION: '4.92.0'   # LOCKED: org-wide pin; validated to preserve secrets_store_secrets
+  NODE_VERSION: '22'
+
+jobs:
+  # === Lint (eslint) ===
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: Run ESLint
+        run: npm run lint   # eslint src/
+
+  # === Typecheck (tsc --noEmit) ===
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck   # tsc --noEmit (some repos name the script type-check)
+
+  # === Test (+ coverage gate) ===
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [typecheck]
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: Run tests with coverage
+        # COVERAGE GATE: thresholds live in vitest.config.ts (<COVERAGE_THRESHOLDS>: lines/functions/
+        # statements 80, branches 75). vitest exits non-zero when a threshold is unmet — the gate is
+        # the command's exit code, not a separate parse step.
+        run: npm run test:coverage   # vitest run --coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: { name: coverage-report, path: coverage/, retention-days: 14, if-no-files-found: warn }
+
+  # === Security quick-check (fast PR gate) ===
+  # Mirrors shared/security-audit.yml's policy. The FULL suite (CodeQL, gitleaks, zizmor, semgrep,
+  # trivy, license) runs in shared/security-audit.yml on push/PR/weekly.
+  security:
+    name: Security Audit (quick)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with: { egress-policy: audit }
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm ci
+      - name: npm audit (prod deps, high+)
+        # <PLACEHOLDER>: per-repo advisory allowlist. Keep IDENTICAL to shared/security-audit.yml;
+        # each allowed advisory needs a documented justification + expiry there.
+        run: npm audit --omit=dev --audit-level=high
+      - name: License compliance (no copyleft in production deps)
+        run: npx license-checker --production --failOn 'GPL;AGPL;LGPL;SSPL' --summary
+
+  # NOTE: prod-only worker (display/infra) — no deploy-sandbox job (no sandbox env). Tag v*.*.* ->
+  # deploy.yml deploys straight to production. See wrangler.toml.
+
+  # === Sentinel: single required check for branch protection ===
+  ci-success:
+    name: CI Success
+    needs: [lint, typecheck, test, security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    steps:
+      - name: Check required jobs
+        env:
+          HAS_FAILURE: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [[ "$HAS_FAILURE" == "true" ]]; then
+            echo "::error::One or more required jobs failed or were cancelled"; exit 1
+          fi
+          echo "All required jobs passed"

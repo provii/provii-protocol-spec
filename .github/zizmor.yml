@@ -1,0 +1,46 @@
+# Zizmor configuration for provii-status.
+#
+# Each rule entry below documents *why* a given finding is acceptable so
+# future maintainers can re-evaluate the suppression rather than treating
+# it as opaque noise. Any finding not listed here is still a hard fail.
+
+rules:
+  dangerous-triggers:
+    # cla.yml uses pull_request_target + issue_comment so the CLA
+    # Assistant action can write back to the PR (post the unsigned-CLA
+    # comment, attach the PR status, append signatures/cla.json on
+    # main). The workflow itself never checks out PR-author code, it
+    # only inspects PR metadata and the comment body. This is the
+    # documented usage pattern from contributor-assistant/github-action.
+    ignore:
+      - cla.yml
+
+  unpinned-uses:
+    # SLSA's reusable workflow generator MUST be referenced by tag (not
+    # SHA) per the SLSA spec; the generator validates its own ref and
+    # refuses to run from a SHA pin. See:
+    # https://github.com/slsa-framework/slsa-github-generator/blob/main/RULES.md
+    ignore:
+      - deploy.yml
+
+  dependabot-cooldown:
+    # Dependabot config intentionally has no cooldown so security
+    # patches land as soon as they are published. Cooldown is appropriate
+    # for product-feature monorepos, not for an infrastructure worker
+    # whose upgrade cadence is "as fast as we can verify."
+    ignore:
+      - dependabot.yml
+
+  archived-uses:
+    # contributor-assistant/github-action is archived but still
+    # functional and SHA-pinned. No maintained alternative exists.
+    ignore:
+      - cla.yml
+
+  cache-poisoning:
+    # deploy.yml's actions/setup-node steps set NO `cache:` input, so no dependency
+    # cache is created or restored — there is no runtime cache to poison. zizmor's
+    # "enables caching by default" heuristic is a Low-confidence false positive here
+    # (setup-node only caches when `cache:` is given). Re-evaluate if a cache is added.
+    ignore:
+      - deploy.yml

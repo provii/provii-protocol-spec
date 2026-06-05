@@ -1,0 +1,18 @@
+# Provii Protocol Spec: CODEOWNERS
+#
+# Identifies required reviewers. Branch protection (require PR, require Code
+# Owner review, signed commits, required status checks) is enforced by the
+# org ruleset, not by this file alone.
+
+*                 @tim-maelstrom
+
+# The normative specification. Every change alters claims that conforming
+# implementations rely on, so it always requires owner review.
+/v0/protocol.md   @tim-maelstrom
+
+# Build, deploy, and supply-chain files. Explicit entries keep them visible
+# in review requests.
+/.github/         @tim-maelstrom
+/build.sh         @tim-maelstrom
+/wrangler.toml    @tim-maelstrom
+/scripts/         @tim-maelstrom
