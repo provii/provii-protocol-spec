@@ -157,11 +157,11 @@ The following terms are used throughout this document with the precise meanings 
 
 **Credential.** The signed object returned by the Issuer to the Wallet at the end of issuance. Contains a version byte, key identifier, commitment, issued at and expires at timestamps, a schema identifier, the issuer verifying key, and a RedJubjub signature over the credential prehash.
 
-**Cutoff Days.** A signed 32 bit integer giving a date as the count of days since the Unix epoch (1970-01-01 UTC). Used as the age threshold in a verification request. A user is "Over" the threshold when `cutoff_days >= dob_days` and "Under" the threshold when `dob_days >= cutoff_days`. Bounded to `[-36525, +36525]` (100 years either side of epoch); see Section 14.
+**Cutoff Days.** A signed 32 bit integer giving a date as the count of days since the Unix epoch (1970-01-01 UTC). Used as the age threshold in a verification request. A user is "Over" the threshold when `cutoff_days >= dob_days` and "Under" the threshold when `dob_days >= cutoff_days`. Bounded to `[-25000, +54750]` (from the earliest date of birth accepted at issuance, approximately 1901, to approximately 150 years after epoch); see Section 14.
 
 **Direction Bit.** A single Boolean public input to the age verification circuit. `1` (true) selects the Over comparison; `0` (false) selects the Under comparison. The circuit is identical for both directions; only the conditional swap inputs change.
 
-**`dob_days`.** A signed 32 bit integer representing the attested date of birth as the count of days since the Unix epoch (1970-01-01 UTC). Negative values represent pre-1970 dates. Appears in the Ed25519 attestation (Section 10.2) and in the Wallet witness (Section 12.4). Bounded to `[-36525, +36525]` (100 years either side of epoch) at issuance; see Section 10.2.
+**`dob_days`.** A signed 32 bit integer representing the attested date of birth as the count of days since the Unix epoch (1970-01-01 UTC). Negative values represent pre-1970 dates. Appears in the Ed25519 attestation (Section 10.2) and in the Wallet witness (Section 12.4). Bounded to `[-25000, +36500]` (approximately 1901 to 2069) at attestation creation; see Section 10.2.
 
 **Domain Separation Tag (DST).** A constant byte string included in a hash or signature input to ensure that outputs of one protocol step cannot be confused with outputs of another. Section 5 enumerates all DSTs.
 
@@ -1010,9 +1010,9 @@ The attestation uses **little endian** for `dob_days` and `timestamp`, in contra
 
 `session_id` binds the attestation to the Issuing Party's session with the Issuer. `client_id` identifies the Issuing Party's registered `CLIENT_ID` at the Issuer. Both fields are covered by the signature; substituting either after signing produces a verification failure. Wallets relay the attestation verbatim; they do not generate or mutate these fields.
 
-**`dob_days` sanity range.** The Issuer constructing an attestation and the Issuer verifying a received attestation MUST reject any attestation whose `dob_days` falls outside the inclusive range `[-36525, +36525]`. This bounds the plausible date of birth to approximately ±100 years from the Unix epoch (1970-01-01 UTC), which encompasses every age verification use case (including issuance for infants) while rejecting obvious garbage or malicious wrapping toward `i32::MIN` or `i32::MAX`.
+**`dob_days` sanity range.** The Issuer MUST reject any create-attestation request whose `dob_days` falls outside the inclusive range `[-25000, +36500]` (approximately 1901 to 2069). This bounds the date of birth to plausible values for any living person, with headroom for future issuance (including issuance for infants), while rejecting obvious garbage or malicious wrapping toward `i32::MIN` or `i32::MAX`. The range is enforced once, at attestation creation. The attestation verification path does not re-check the range: attestations are accepted only under the Issuer's own Ed25519 verifying key (Section 10.5), and every attestation the Issuer signs has already passed the creation bound. Implementations MAY re-check the range at verification as defence in depth.
 
-Source citation: `provii-crypto/crypto-commons/src/attestation.rs`, `AttestationMessage::canonical_bytes`.
+Source citation: `provii-issuer/src/types.rs`, `CreateAttestationRequest` (`dob_days` schema validation).
 
 ### 10.3 Create Attestation
 
@@ -1056,15 +1056,14 @@ The verification step MUST use a strict verification implementation that rejects
 
 ```
 VerifyAttestationFresh(attestation, ed25519_vk, current_time):
-    require -36525 <= attestation.dob_days <= 36525                                 // sanity
     require current_time - attestation.timestamp <= ATTESTATION_MAX_AGE_SECONDS    // 3600
     require attestation.timestamp - current_time <= ATTESTATION_CLOCK_SKEW_TOLERANCE_SECONDS // 60
     require VerifyAttestation(attestation, ed25519_vk) succeeds
 ```
 
-A conforming Issuer MUST reject any attestation with `dob_days` outside `[-36525, +36525]` (Section 10.2). A conforming Issuer MUST reject attestations whose timestamp is more than `ATTESTATION_MAX_AGE_SECONDS` (3600) seconds older than its local current time. A conforming Issuer MUST reject attestations whose timestamp is more than `ATTESTATION_CLOCK_SKEW_TOLERANCE_SECONDS` (60) seconds ahead of its local current time. The future skew bound is tighter than the past bound because attestations far in the future indicate clock attack rather than ordinary clock drift. The freshness past bound is shorter than the nonce single-use window (`ATTESTATION_NONCE_TTL_SECONDS`). This guarantees that if a nonce was consumed (recorded in the consumed-nonce store) during the freshness window, its entry is still retained when any replay arrives, preventing boundary replays (replay attempts timed to fall between the freshness window expiry and the nonce store TTL expiry). An attacker who delays a captured attestation beyond `ATTESTATION_MAX_AGE_SECONDS` fails the freshness check; one who replays it within `ATTESTATION_MAX_AGE_SECONDS` is caught by the nonce store, which retains consumed entries for the full `ATTESTATION_NONCE_TTL_SECONDS` TTL.
+The `dob_days` range bound is enforced at attestation creation rather than re-checked here (Section 10.2). A conforming Issuer MUST reject attestations whose timestamp is more than `ATTESTATION_MAX_AGE_SECONDS` (3600) seconds older than its local current time. A conforming Issuer MUST reject attestations whose timestamp is more than `ATTESTATION_CLOCK_SKEW_TOLERANCE_SECONDS` (60) seconds ahead of its local current time. The future skew bound is tighter than the past bound because attestations far in the future indicate clock attack rather than ordinary clock drift. The freshness past bound is shorter than the nonce single-use window (`ATTESTATION_NONCE_TTL_SECONDS`). This guarantees that if a nonce was consumed (recorded in the consumed-nonce store) during the freshness window, its entry is still retained when any replay arrives, preventing boundary replays (replay attempts timed to fall between the freshness window expiry and the nonce store TTL expiry). An attacker who delays a captured attestation beyond `ATTESTATION_MAX_AGE_SECONDS` fails the freshness check; one who replays it within `ATTESTATION_MAX_AGE_SECONDS` is caught by the nonce store, which retains consumed entries for the full `ATTESTATION_NONCE_TTL_SECONDS` TTL.
 
-Source citation: `provii-crypto/crypto-commons/src/attestation.rs`, `Attestation::verify_with_timestamp`.
+Source citation: `provii-crypto/crypto-commons/src/attestation.rs`, `DobAttestation::verify_with_timestamp`.
 
 ### 10.6 Nonce Single Use
 
@@ -1170,7 +1169,6 @@ Step 4.  The Issuer verifies the Attestation:
             - Ed25519 signature valid (Section 10.4)
             - timestamp within freshness bounds (Section 10.5)
             - nonce not previously consumed (Section 10.6)
-            - dob_days within [-36525, +36525]
 
          If any check fails, the Issuer MUST reject and MUST NOT
          proceed with issuance. On success, the nonce MUST be
@@ -1879,7 +1877,9 @@ Step 5.  The Verifier returns to the Relying Party:
 
 The `expires_in` requested by the Relying Party MUST NOT exceed `CHALLENGE_EXPIRY_SECONDS` (300). Verifiers MAY enforce a tighter ceiling.
 
-Verifiers MUST reject any challenge request with `cutoff_days` outside the inclusive range `[-36525, +36525]`. This matches the `dob_days` sanity range in Section 10.2: a cutoff outside this range cannot correspond to a plausible date of birth and is either a malformed request or an attempt to exploit wraparound arithmetic in the biasing transform (Section 6.3).
+Verifiers MUST reject any challenge request whose `cutoff_days` falls outside the inclusive range `[-25000, +54750]`. The lower bound matches the earliest `dob_days` accepted at issuance (Section 10.2): a cutoff below it cannot correspond to a plausible date of birth. The upper bound, approximately 150 years after epoch, leaves operational headroom for cutoffs computed from current dates over the life of the system. A cutoff outside this range is either a malformed request or an attempt to exploit wraparound arithmetic in the biasing transform (Section 6.3).
+
+Source citation: `provii-verifier/src/types/strict.rs`, `CutoffDays::new`.
 
 The `nonce` input to `rp_challenge` derivation MUST satisfy `validate_nonce`: length exactly 32 bytes, at least 8 distinct byte values, not all zero. CSPRNG output overwhelmingly satisfies these properties; the validation is defence in depth. The resulting `rp_challenge` (a SHA-256 output) inherits high entropy from a valid nonce. The same `validate_nonce` predicate applies uniformly to every 32 byte random value minted by a Provii role: the nonce for `rp_challenge` derivation, the `submit_secret`, the attestation nonce (Section 10), and `r_bits` ingress. A conforming implementation MUST reject any such value that fails `validate_nonce` and MUST NOT substitute a replacement value.
 
@@ -2681,7 +2681,7 @@ Implementations MUST reject:
 
 ### 17.18 DOB Range Sanity Check
 
-The Issuer MUST reject `dob_days` values outside the operationally plausible range (normative; see §10.2). The range is `[-36525, +36525]`, spanning approximately ±100 years from the Unix epoch. Values outside this range almost always indicate a data-entry error upstream at the Issuing Party's KYC system. The Ed25519 attestation field remains an `i32` internally; the MUST applies at the issuance boundary.
+The Issuer MUST reject `dob_days` values outside the operationally plausible range (normative; see §10.2). The range is `[-25000, +36500]`, spanning approximately 1901 to 2069. Values outside this range almost always indicate a data-entry error upstream at the Issuing Party's KYC system. The Ed25519 attestation field remains an `i32` internally; the MUST applies at the attestation creation boundary.
 
 ### 17.19 `vk_id` Collision Bound
 
@@ -3098,7 +3098,7 @@ A user, Alice, born 2000-10-16 (`dob_days = 11246`), enrols via an Issuing Party
 4. The Acme Bank app constructs a deep link containing the base64url-encoded attestation and invokes the Provii Wallet. Alice is bounced into the Wallet.
 5. The Wallet generates 128 bits of randomness from the iOS Secure Enclave CSPRNG. After validation (≥ 8 unique bytes, not all zero), the result is held in memory as `r_bits`.
 6. The Wallet sends `{ "attestation": <base64url>, "r_bits": <base64url 16 bytes> }` to the Issuer at `POST /v0/issuance/blind` over TLS.
-7. The Issuer verifies the attestation signature, freshness (3600 s past, 60 s future), and `dob_days` within `[-36525, +36525]`. It performs the nonce single-use check: if the nonce is already present in the consumed-nonce store, the request is rejected as a replay; otherwise the nonce is recorded with TTL `ATTESTATION_NONCE_TTL_SECONDS` (7200 seconds). It computes `c = PedersenCommit(11246, r_bits)` (32 bytes).
+7. The Issuer verifies the attestation signature and freshness (3600 s past, 60 s future). It performs the nonce single-use check: if the nonce is already present in the consumed-nonce store, the request is rejected as a replay; otherwise the nonce is recorded with TTL `ATTESTATION_NONCE_TTL_SECONDS` (7200 seconds). It computes `c = PedersenCommit(11246, r_bits)` (32 bytes).
 8. The Issuer constructs CredMsgV2 with `v = 2`, `kid = "provii:2026-05"` (exactly 14 bytes), `c`, `iat = now`, `exp = now + 7 300 days`, `schema = "provii.age/0"` (exactly 12 bytes). It computes the prehash, Blake2s hashes it, signs with RedJubjub, and self-verifies.
 9. The Issuer returns the SignedCredential to the Wallet and zeroises `dob_days` and `r_bits` from memory. It writes an audit log entry containing the Acme Bank `CLIENT_ID`, timestamp, `kid`, `iat`, `exp`, and schema, with no DOB or randomness.
 10. The Wallet verifies the credential: recomputes `c' = PedersenCommit(11246, r_bits)` and confirms `c' == credential.c_bytes` in constant time, verifies the RedJubjub signature, confirms `iat <= now < exp`. On success, it stores `{ SignedCredential, dob_days = 11246, r_bits }` in the iOS Keychain.
